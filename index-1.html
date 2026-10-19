@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Футбольная викторина — онлайн</title>
+<style>
+:root{--bg:#07101f;--panel:#101e35;--line:#29496c;--cyan:#3de5c1;--gold:#ffd166;--purple:#b78aff;--muted:#a9bad0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#16375a,transparent 55%),var(--bg);color:#f5f8ff;font:16px/1.45 system-ui,sans-serif}header{padding:20px clamp(14px,4vw,40px);display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #244a6a;background:#07101fe8}h1{font-size:clamp(22px,4vw,34px);margin:0}.muted{color:var(--muted)}main{max-width:1180px;margin:auto;padding:22px 14px 50px}.panel{background:#0b172aeb;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;box-shadow:0 10px 35px #0003}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px}input,select{width:100%;background:#071426;color:#fff;border:1px solid #355675;border-radius:10px;padding:12px;font:inherit}button{border:1px solid #3974a0;background:linear-gradient(135deg,#17456c,#122846);color:#fff;border-radius:11px;padding:11px 15px;font:inherit;cursor:pointer;transition:.18s}button:hover{transform:translateY(-1px);filter:brightness(1.2)}button:disabled{opacity:.4;cursor:not-allowed;transform:none}.primary{background:linear-gradient(135deg,#0f9e83,#08705d);border-color:#3de5c1}.gold{background:linear-gradient(135deg,#e5ae29,#8d5a08);border-color:var(--gold);color:#170f00;font-weight:800}.danger{background:#492033;border-color:#8b4261}.hidden{display:none!important}.status{padding:8px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:13px}.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.round{border:1px solid var(--accent);border-radius:15px;padding:12px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 10%,#101e35),#0b172a)}.round h3{margin:0 0 8px}.topic{width:100%;text-align:left;margin:4px 0;display:flex;justify-content:space-between;gap:8px;align-items:center}.topic.used{opacity:.35;filter:grayscale(1)}.topic b{color:var(--gold)}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}.player{padding:10px;border:1px solid #2c4b6b;background:#0a1729;border-radius:11px}.player.me{border-color:var(--cyan);box-shadow:0 0 15px #3de5c122}.player .pts{color:var(--gold);font-weight:800}.notice{padding:12px;border-radius:10px;background:#122944;border:1px solid #315b80}.question{font-size:clamp(20px,3vw,28px);font-weight:800;margin:16px 0}.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.answer{min-height:52px;text-align:left}.answer.good{background:#075a40;border-color:#35e7a4}.answer.bad{background:#6a1e32;border-color:#ff6683}.special{border-color:var(--purple);background:linear-gradient(135deg,#351454,#12213a)}.secret{border-color:var(--gold);background:linear-gradient(135deg,#4b350b,#12213a)}footer{text-align:center;color:#6f8cac;font-size:12px;padding:0 12px 28px}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 18px;background:#112b42;border:1px solid var(--cyan);border-radius:12px;z-index:20;box-shadow:0 8px 35px #0008;max-width:90vw}.bigcode{font-size:30px;letter-spacing:.16em;color:var(--gold);font-weight:900}.timer{font-size:36px;text-align:center;color:var(--gold);font-weight:900}.tag{font-size:12px;border:1px solid #385c7d;padding:5px 8px;border-radius:999px;color:var(--muted)}@media(max-width:780px){.board{grid-template-columns:1fr}.answers{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div><h1>⚽ Футбольная викторина</h1><div class="muted">Онлайн-комнаты · общий счёт · первый нажал — отвечает</div></div><div class="row"><span class="status" id="connection">Не подключено</span><span class="status">7–12 игроков</span></div></header>
+<main>
+<section class="panel" id="setup">
+<h2>Войти в игру</h2><p class="muted">Создай комнату или введи код, который прислал друг. Для синхронизации нужен Firebase — инструкция в README.</p>
+<div class="grid"><label class="field">Твоё имя<input id="name" maxlength="20" placeholder="Например, Артём"></label><label class="field">Код комнаты<input id="roomCode" maxlength="6" placeholder="Например, A7K2Q" style="text-transform:uppercase"></label></div>
+<div class="row" style="margin-top:12px"><button class="primary" id="createBtn">Создать комнату</button><button id="joinBtn">Войти по коду</button></div>
+<div id="setupError" class="muted" style="margin-top:10px"></div>
+</section>
+<section class="panel hidden" id="lobby">
+<div class="row" style="justify-content:space-between"><div><h2>Комната <span class="bigcode" id="roomLabel"></span></h2><div class="muted" id="lobbyStatus">Ожидаем игроков…</div></div><button id="copyBtn">Скопировать код</button></div>
+<p class="muted">Отправь код друзьям. Максимум 12 игроков. Ведущий — создатель комнаты.</p>
+<div id="lobbyPlayers" class="players"></div>
+<div class="row" style="margin-top:14px"><button class="primary" id="startBtn">Начать игру</button><button class="danger" id="leaveBtn">Выйти из комнаты</button></div>
+<div id="lobbyMsg" class="muted" style="margin-top:10px"></div>
+</section>
+<section class="panel hidden" id="game">
+<div class="row" style="justify-content:space-between"><div><h2 id="gameTitle">Игровое поле</h2><div class="muted" id="turnLabel"></div></div><div class="row"><span class="status">Комната <b id="gameRoom"></b></span><span class="status">Счёт: <b id="myScore">0</b></span></div></div>
+<div id="gameNotice" class="notice" style="margin:12px 0"></div>
+<div class="board" id="board"></div>
+</section>
+<section class="panel hidden" id="questionPanel">
+<div class="row"><span class="tag" id="qRound"></span><span class="tag" id="qTopic"></span><span class="tag" id="qValue"></span><span class="tag" id="qSpecial"></span></div>
+<h2 class="question" id="qText"></h2>
+<div id="secretBox" class="hidden"><div class="timer" id="timer">3</div><div style="text-align:center"><button class="gold" id="revealBtn">Раскрыть секрет</button></div></div>
+<div id="kittyBox" class="hidden"><div class="timer">🎒 🐈 ❓</div><p class="muted" style="text-align:center">В мешке спрятан вопрос — нажми, чтобы открыть.</p><div style="text-align:center"><button class="primary" id="kittyBtn">Открыть мешок</button></div></div>
+<div id="answerBox"><div class="answers" id="answerButtons"></div></div>
+<div class="notice" id="buzzNotice" style="margin-top:12px">Ждём первый ответ…</div>
+<div class="panel" id="appealPanel" style="margin-top:12px;padding:14px">
+  <h3 style="margin-top:0">⚖️ Апелляция</h3>
+  <div id="appealStatus" class="muted">После решения ведущего можно оспорить оценку ответа.</div>
+  <div id="appealForm" class="hidden" style="margin-top:10px">
+    <label for="appealReason">Почему ты считаешь решение неправильным?</label>
+    <input id="appealReason" maxlength="300" placeholder="Например: мой ответ тоже считается правильным" style="margin:8px 0 10px">
+    <button id="appealSubmit" class="gold">Подать апелляцию</button>
+  </div>
+  <div id="appealHostControls" class="hidden row" style="margin-top:10px">
+    <button id="appealAccept" class="primary">Игрок прав — засчитать ответ</button>
+    <button id="appealReject" class="danger">Соперник прав — оставить решение</button>
+  </div>
+</div>
+<div class="row" style="justify-content:space-between;margin-top:14px"><button id="backBoard">К игровому полю</button><button class="primary hidden" id="resolveBtn">Засчитать ответ и продолжить</button></div>
+</section>
+<section class="panel hidden" id="finalPanel"><h2>🏆 Игра окончена</h2><div id="finalScores" class="players"></div><button class="primary" id="newRoomBtn" style="margin-top:12px">Создать новую комнату</button></section>
+</main><footer>Демо-проект. Для настоящей публичной игры настройте правила Firebase и не храните секреты в клиентском коде.</footer>
+<div id="toast" class="toast hidden"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, set, get, update, onValue, runTransaction, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// 1) Создай проект Firebase и вставь сюда конфигурацию из настроек приложения.
+const firebaseConfig = {
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://PASTE_PROJECT_ID-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "PASTE_PROJECT_ID",
+  appId: "PASTE_APP_ID"
+};
+
+const $ = id => document.getElementById(id);
+const rounds = [
+{title:"Раунд 1 · 1 очко",topics:[
+["Чемпионаты мира",[
+["Кто забил победный гол в финале ЧМ-2010?","Андрес Иньеста",["Андрес Иньеста","Давид Вилья","Хави","Фернандо Торрес"]],
+["Какая сборная выиграла ЧМ-1998?","Франция",["Бразилия","Франция","Италия","Германия"]],
+["Кто выиграл «Золотой мяч» ЧМ-2014?","Лионель Месси",["Томас Мюллер","Хамес Родригес","Лионель Месси","Мануэль Нойер"]],
+["Какая сборная стала чемпионом мира в 2006 году?","Италия",["Франция","Италия","Бразилия","Германия"]],
+["Кто забил самый быстрый гол в истории ЧМ среди мужчин?","Хакан Шюкюр",["Мирослав Клозе","Роналдо","Хакан Шюкюр","Клинт Демпси"]]]],
+["Лига чемпионов",[
+["Кто выиграл Лигу чемпионов в сезоне 2003/04?","Порту",["Монако","Порту","Милан","Челси"]],
+["Какой клуб победил в финале ЛЧ 2012 года?","Челси",["Бавария","Челси","Реал Мадрид","Барселона"]],
+["Кто забил гол ударом с лёта в финале ЛЧ 2002 года?","Зинедин Зидан",["Рауль","Зинедин Зидан","Роберто Карлос","Стив Макманаман"]],
+["Кто выиграл финал ЛЧ 1997 года?","Боруссия Дортмунд",["Ювентус","Аякс","Боруссия Дортмунд","Манчестер Юнайтед"]],
+["Какой клуб выиграл первый Кубок европейских чемпионов?","Реал Мадрид",["Бенфика","Реал Мадрид","Милан","Реймс"]]]],
+["Золотой мяч",[
+["Кто первым из африканских футболистов выиграл «Золотой мяч»?","Джордж Веа",["Дидье Дрогба","Джордж Веа","Самюэль Это’о","Яя Туре"]],
+["Кто получил награду в 2004 году?","Андрей Шевченко",["Роналдиньо","Деку","Андрей Шевченко","Тьерри Анри"]],
+["Кто выиграл «Золотой мяч» в 2006 году?","Фабио Каннаваро",["Джанлуиджи Буффон","Фабио Каннаваро","Зинедин Зидан","Роналдиньо"]],
+["Кто выиграл награду в 1998 году?","Зинедин Зидан",["Роналдо","Зинедин Зидан","Давор Шукер","Михаэль Баллак"]],
+["Кто выиграл «Золотой мяч» в 2001 году?","Майкл Оуэн",["Рауль","Луиш Фигу","Майкл Оуэн","Оливер Кан"]]]],
+["Английский футбол",[
+["Кто тренировал «Лестер» в сезоне АПЛ 2015/16?","Клаудио Раньери",["Найджел Пирсон","Клаудио Раньери","Брендан Роджерс","Жозе Моуринью"]],
+["Какой клуб завершил сезон АПЛ 2003/04 без поражений?","Арсенал",["Челси","Арсенал","Ливерпуль","Манчестер Юнайтед"]],
+["Кто забил победный гол «Манчестер Юнайтед» в финале ЛЧ 1999 года?","Оле-Гуннар Сульшер",["Дэвид Бекхэм","Тедди Шерингем","Оле-Гуннар Сульшер","Райан Гиггз"]],
+["Какой клуб выиграл АПЛ в сезоне 2015/16?","Лестер Сити",["Тоттенхэм","Лестер Сити","Арсенал","Манчестер Сити"]],
+["Как называется стадион «Ливерпуля»?","Энфилд",["Стэмфорд Бридж","Энфилд","Олд Траффорд","Этихад"]]]],
+["Итальянский футбол",[
+["Кто тренировал «Интер» при требле 2009/10?","Жозе Моуринью",["Карло Анчелотти","Жозе Моуринью","Рафаэль Бенитес","Антонио Конте"]],
+["Кто выиграл Серию А в сезоне 2022/23?","Наполи",["Ювентус","Наполи","Интер","Милан"]],
+["Какой клуб называют «нерадзурри»?","Интер",["Рома","Лацио","Интер","Милан"]],
+["Какой клуб выиграл ЛЧ в 2007 году?","Милан",["Ливерпуль","Милан","Челси","Барселона"]],
+["Кого Италия победила в финале ЧМ-2006?","Францию по пенальти",["Германию 2:0","Францию по пенальти","Бразилию 1:0","Португалию 3:1"]]]],
+["Испанский футбол",[
+["Кто тренировал «Барселону» в сезоне требла 2008/09?","Пеп Гвардиола",["Франк Райкард","Пеп Гвардиола","Луис Энрике","Йохан Кройф"]],
+["Какой клуб выбил «Барселону» в полуфинале ЛЧ 2019 года?","Ливерпуль",["Тоттенхэм","Ливерпуль","Аякс","Рома"]],
+["Кто тренировал «Атлетико» при победе в Ла Лиге 2013/14?","Диего Симеоне",["Кике Флорес","Диего Симеоне","Рафаэль Бенитес","Луис Арагонес"]],
+["Какой клуб выиграл Ла Лигу 1999/2000?","Депортиво Ла-Корунья",["Валенсия","Реал Мадрид","Депортиво Ла-Корунья","Барселона"]],
+["Как называется дерби «Реала» и «Барселоны»?","Эль-Класико",["Эль-Класико","Дерби Мадриленьо","Севильское дерби","Класико Баско"]]]]
+]},
+{title:"Раунд 2 · 2 очка",topics:[
+["Тактика",[
+["Что означает термин «инвертированный фулбек»?","Крайний защитник смещается в центр при владении",["Защитник играет форварда","Крайний защитник смещается в центр при владении","Вратарь выходит к центру","Нападающий уходит на фланг"]],
+["Как называется схема 3-4-2-1?","Три защитника, четыре полузащитника, два атакующих полузащитника и форвард",["Три защитника, четыре полузащитника, два атакующих полузащитника и форвард","Три форварда и семь защитников","Четыре защитника и два форварда","Десять полевых игроков без форварда"]],
+["Что такое «ложная девятка»?","Нападающий, опускающийся в глубину",["Крайний защитник","Нападающий, опускающийся в глубину","Опорный полузащитник","Вратарь-либеро"]],
+["Что такое контрпрессинг?","Попытка вернуть мяч сразу после потери",["Низкий блок у штрафной","Попытка вернуть мяч сразу после потери","Длинная передача вперёд","Персональная опека вратаря"]],
+["Как называется пространство между линиями соперника?","Карман / пространство между линиями",["Коридор VAR","Карман / пространство между линиями","Вторая штанга","Полукруг штрафной"]]]],
+["Рекорды ЧМ",[
+["Сколько голов забил Мирослав Клозе на чемпионатах мира?","16",["14","15","16","17"]],
+["Кто забил пять голов в одном матче ЧМ-1994?","Олег Саленко",["Ромарио","Олег Саленко","Роберто Баджо","Христо Стоичков"]],
+["Кто стал лучшим бомбардиром ЧМ-2014?","Хамес Родригес",["Лионель Месси","Томас Мюллер","Хамес Родригес","Неймар"]],
+["Какая сборная заняла третье место на ЧМ-2002?","Турция",["Южная Корея","Турция","Германия","Испания"]],
+["Кто забил победный гол в финале ЧМ-1954?","Хельмут Ран",["Фриц Вальтер","Хельмут Ран","Ференц Пушкаш","Шандор Кочиш"]]]],
+["Кубок чемпионов",[
+["Кто выиграл Кубок европейских чемпионов в сезоне 1982/83?","Гамбург",["Ювентус","Гамбург","Ливерпуль","Бавария"]],
+["Кто победил «Барселону» в финале 1986 года по пенальти?","Стяуа",["Стяуа","Порту","Милан","Аякс"]],
+["Кто выиграл турнир в 1991 году?","Црвена Звезда",["Марсель","Црвена Звезда","Бенфика","Милан"]],
+["Кто победил «Баварию» в финале 1987 года?","Порту",["Порту","Реал Мадрид","ПСВ","Ливерпуль"]],
+["Кто выиграл Кубок чемпионов в 1978/79?","Ноттингем Форест",["Ливерпуль","Аякс","Ноттингем Форест","Боруссия Мёнхенгладбах"]]]],
+["Матчи",[
+["Какой счёт был у «Ливерпуля» против «Барселоны» в полуфинале ЛЧ 2019?","4:0",["3:0","4:0","4:1","5:1"]],
+["Какой счёт был в матче Уругвай — Бразилия на ЧМ-1950?","2:1",["1:0","2:1","3:2","1:1"]],
+["Какой счёт был в финале ЛЧ 2017 года?","Реал Мадрид 4:1 Ювентус",["Реал 3:1 Ювентус","Реал 4:1 Ювентус","Ювентус 2:1 Реал","1:1, победа Реала по пенальти"]],
+["Какой счёт был у Германии против Бразилии в полуфинале ЧМ-2014?","7:1",["6:0","7:1","5:1","7:2"]],
+["Кто выиграл финал ЛЧ 2005 года?","Ливерпуль",["Милан","Ливерпуль","Челси","Порту"]]]],
+["Трансферы",[
+["Куда Луиш Фигу перешёл из «Барселоны» в 2000 году?","Реал Мадрид",["Милан","Реал Мадрид","Интер","Манчестер Юнайтед"]],
+["Какой клуб купил Зидана у «Ювентуса» в 2001 году?","Реал Мадрид",["Реал Мадрид","Арсенал","Бавария","Челси"]],
+["Из какого клуба «Арсенал» подписал Тьерри Анри в 1999 году?","Ювентус",["Монако","Ювентус","Барселона","Лион"]],
+["Откуда Роналду перешёл в «Реал» в 2009 году?","Манчестер Юнайтед",["Спортинг","Манчестер Юнайтед","Интер","Порту"]],
+["Куда Неймар перешёл из «Барселоны» в 2017 году?","Пари Сен-Жермен",["Манчестер Сити","Пари Сен-Жермен","Челси","Ювентус"]]]],
+["Вратари",[
+["Кто единственный вратарь, выигравший «Золотой мяч»?","Лев Яшин",["Дино Дзофф","Лев Яшин","Оливер Кан","Джанлуиджи Буффон"]],
+["Кто был вратарём Испании на ЧМ-2010?","Икер Касильяс",["Пепе Рейна","Икер Касильяс","Виктор Вальдес","Давид де Хеа"]],
+["Кто был вратарём «Манчестер Юнайтед» в финале ЛЧ 1999?","Петер Шмейхель",["Эдвин ван дер Сар","Петер Шмейхель","Фабьен Бартез","Раймонд ван дер Гау"]],
+["Кто был капитаном Италии на ЧМ-2006?","Фабио Каннаваро",["Франческо Тотти","Джанлуиджи Буффон","Фабио Каннаваро","Андреа Пирло"]],
+["Какой вратарь выиграл ЧМ-2014 с Германией?","Мануэль Нойер",["Мануэль Нойер","Тибо Куртуа","Джанлуиджи Буффон","Икер Касильяс"]]]]
+]},
+{title:"Раунд 3 · 3 очка",topics:[
+["Редкие факты",[
+["Какая сборная стала бронзовым призёром ЧМ-1998?","Хорватия",["Нидерланды","Хорватия","Англия","Италия"]],
+["Кто выиграл ЧМ-1974?","ФРГ",["Нидерланды","ФРГ","Бразилия","Польша"]],
+["Какая сборная выбила Францию на групповом этапе ЧМ-2002?","Сенегал",["Дания","Сенегал","Уругвай","Турция"]],
+["Кто был лучшим бомбардиром ЧМ-1998?","Давор Шукер",["Роналдо","Давор Шукер","Зинедин Зидан","Бебето"]],
+["Какая сборная выиграла бронзу ЧМ-2002?","Турция",["Южная Корея","Турция","Испания","США"]]]],
+["Тактика",[
+["Какого тренера связывают с «катеначчо» «Интера» 1960-х?","Эленио Эррера",["Арриго Сакки","Эленио Эррера","Витторио Поццо","Марчелло Липпи"]],
+["Как называют футбол тотального движения сборной Нидерландов 1970-х?","Тотальный футбол",["Катеначчо","Тотальный футбол","Тики-така","Гегенпрессинг"]],
+["Что такое «перегрузка с переводом»?","Собрать игроков на одной стороне и перевести мяч на другую",["Держать всех в штрафной","Собрать игроков на одной стороне и перевести мяч на другую","Постоянно бить верхом","Опекать одного соперника"]],
+["Как называют атакующего полузащитника за форвардом?","Десятка",["Шестёрка","Десятка","Латераль","Либеро"]],
+["Что означает высокий блок?","Оборона и давление располагаются высоко на поле",["Все стоят у своей штрафной","Оборона и давление располагаются высоко на поле","Только длинные передачи","Защитники не атакуют"]]]],
+["Финалы",[
+["Кто проиграл «Манчестер Юнайтед» в финале ЛЧ 1999 года?","Бавария",["Бавария","Ювентус","Валенсия","Бенфика"]],
+["Какой клуб выиграл Кубок УЕФА 2003 года?","Порту",["Селтик","Порту","Ливерпуль","Лацио"]],
+["Кто выиграл Кубок УЕФА 2001 года?","Ливерпуль",["Алавес","Ливерпуль","Рома","Боруссия Дортмунд"]],
+["Кто победил «Марсель» в финале Кубка чемпионов 1991 года?","Црвена Звезда",["Милан","Црвена Звезда","Барселона","Сампдория"]],
+["Какой клуб выиграл Кубок обладателей кубков 1986 года?","Динамо Киев",["Динамо Киев","Атлетико Мадрид","Аякс","Монако"]]]],
+["Индивидуальные награды",[
+["Кто выиграл «Золотой мяч» в 2001 году?","Майкл Оуэн",["Рауль","Майкл Оуэн","Оливер Кан","Дэвид Бекхэм"]],
+["Кто стал лучшим бомбардиром Евро-2000 вместе с Саво Милошевичем?","Патрик Клюйверт",["Тьерри Анри","Патрик Клюйверт","Златан Ибрагимович","Франческо Тотти"]],
+["Кто стал лучшим бомбардиром ЧМ-2006?","Мирослав Клозе",["Лука Тони","Мирослав Клозе","Роналдо","Тьерри Анри"]],
+["Кто получил «Золотой мяч» в 1995 году?","Джордж Веа",["Юрген Клинсманн","Джордж Веа","Паоло Мальдини","Ромарио"]],
+["Кто выиграл «Золотой мяч» в 1994 году?","Христо Стоичков",["Роберто Баджо","Христо Стоичков","Ромарио","Паоло Мальдини"]]]],
+["Клубная история",[
+["Какой клуб первым выиграл три Кубка чемпионов подряд в 1970-х?","Аякс",["Бавария","Аякс","Ливерпуль","Милан"]],
+["Кто выиграл Кубок УЕФА 2000/01?","Ливерпуль",["Валенсия","Ливерпуль","Рома","Порту"]],
+["Какой клуб выиграл Кубок чемпионов в 1977 году?","Ливерпуль",["Боруссия Мёнхенгладбах","Ливерпуль","Аякс","Бавария"]],
+["Кто выиграл Кубок УЕФА в 1988 году?","Байер Леверкузен",["Эспаньол","Байер Леверкузен","Наполи","Реал Мадрид"]],
+["Какой клуб выиграл Кубок УЕФА 1989 года?","Наполи",["Наполи","Штутгарт","Ювентус","Бордо"]]]],
+["Правила",[
+["В каком году VAR впервые применили на мужском ЧМ?","2018",["2014","2016","2018","2022"]],
+["Можно ли находиться в офсайде непосредственно при вбрасывании?","Нет",["Да","Нет","Только в своей половине","После касания защитника"]],
+["Что получает игрок за вторую жёлтую карточку?","Красную карточку и удаление",["Штрафной удар","Красную карточку и удаление","Предупреждение капитану","Пенальти"]],
+["Можно ли забить непосредственно с начального удара в ворота соперника?","Да",["Нет","Да","Только в дополнительное время","Только после рикошета"]],
+["Как называется запрет вратарю брать руками намеренный пас ногой партнёра?","Правило обратного паса",["Правило преимущества","Правило обратного паса","Правило шести секунд","Правило офсайда"]]]]
+]}
+];
+
+let app,auth,db,uid=null,roomId=null,playerName="",isHost=false,roomData=null,unsubRoom=null,currentQuestion=null;
+const specialCells=new Set(["0-1-2","0-4-4","1-0-3","1-4-1","2-2-4","2-5-2"]);
+function toast(msg){$("toast").textContent=msg;$("toast").classList.remove("hidden");setTimeout(()=>$("toast").classList.add("hidden"),2600)}
+function show(id){$(id).classList.remove("hidden")}function hide(id){$(id).classList.add("hidden")}
+function code(){return Math.random().toString(36).slice(2,7).toUpperCase()}
+function configReady(){return !firebaseConfig.apiKey.startsWith("PASTE_")&&!firebaseConfig.projectId.startsWith("PASTE_")}
+async function init(){if(!configReady()){ $("connection").textContent="Нужна настройка Firebase";$("setupError").textContent="Сначала настрой Firebase по инструкции README.md и замени firebaseConfig в index.html."; $("createBtn").disabled=true;$("joinBtn").disabled=true;return}
+try{app=initializeApp(firebaseConfig);auth=getAuth(app);db=getDatabase(app);await signInAnonymously(auth);onAuthStateChanged(auth,u=>{if(u){uid=u.uid;$("connection").textContent="Подключено к интернету"}})}catch(e){$("setupError").textContent="Ошибка Firebase: "+e.message}}
+async function createRoom(){if(!uid)return;playerName=$("name").value.trim()||"Игрок";let id=code();while((await get(ref(db,"rooms/"+id))).exists())id=code();roomId=id;isHost=true;const player={uid,name:playerName,score:0,joinedAt:Date.now(),host:true};const room={code:id,host:uid,status:"lobby",createdAt:serverTimestamp(),players:{[uid]:player},turnUid:uid,used:{},question:null,round:0,topic:null};await set(ref(db,"rooms/"+id),room);subscribeRoom();showRoom();toast("Комната создана!")}
+async function joinRoom(){if(!uid)return;playerName=$("name").value.trim()||"Игрок";const id=$("roomCode").value.trim().toUpperCase();if(!id){$("setupError").textContent="Введи код комнаты.";return}const snap=await get(ref(db,"rooms/"+id));if(!snap.exists()){$("setupError").textContent="Комната не найдена.";return}const r=snap.val();if(r.status!=="lobby"){$("setupError").textContent="Игра уже началась.";return}const players=Object.values(r.players||{});if(players.length>=12){$("setupError").textContent="В комнате уже 12 игроков.";return}if(players.some(p=>p.uid===uid)){roomId=id;isHost=r.host===uid;subscribeRoom();showRoom();return}roomId=id;isHost=false;await set(ref(db,`rooms/${id}/players/${uid}`),{uid,name:playerName,score:0,joinedAt:Date.now(),host:false});subscribeRoom();showRoom()}
+function subscribeRoom(){if(unsubRoom)unsubRoom();unsubRoom=onValue(ref(db,"rooms/"+roomId),snap=>{if(!snap.exists()){toast("Комната закрыта.");resetUI();return}roomData=snap.val();renderRoom()})}
+function showRoom(){hide("setup");show("lobby");$("roomLabel").textContent=roomId;$("gameRoom").textContent=roomId}
+function renderRoom(){if(!roomData)return;const players=Object.values(roomData.players||{}).sort((a,b)=>a.joinedAt-b.joinedAt);$("lobbyStatus").textContent=`${players.length}/12 игроков · ${roomData.status==="lobby"?"ожидание начала":"игра идёт"}`;$("lobbyPlayers").innerHTML=players.map(p=>`<div class="player ${p.uid===uid?"me":""}">${esc(p.name)} ${p.host?"👑":""}<div class="pts">${p.score||0} очков</div></div>`).join("");$("startBtn").classList.toggle("hidden",!isHost||roomData.status!=="lobby");if(roomData.status==="lobby"){show("lobby");hide("game");hide("questionPanel");hide("finalPanel")}else if(roomData.status==="playing"){hide("lobby");show("game");hide("finalPanel");renderBoard()}else if(roomData.status==="question"){hide("lobby");show("game");show("questionPanel");renderBoard();renderQuestion()}else if(roomData.status==="finished"){hide("lobby");hide("game");hide("questionPanel");show("finalPanel");renderFinal()}}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderBoard(){if(!roomData)return;const players=Object.values(roomData.players||{});const turn=players.find(p=>p.uid===roomData.turnUid);$("turnLabel").textContent=turn?`Выбирает вопрос: ${turn.name}`:"Выбор вопроса";$("myScore").textContent=(roomData.players?.[uid]?.score)||0;$("gameNotice").textContent=roomData.status==="question"?(roomData.question?.buzzUid?`Первым ответить выбрал: ${roomData.players?.[roomData.question.buzzUid]?.name||"игрок"}`:"Нажмите «Я отвечаю!» — кто первый, тот получает право ответа."):(turn?.uid===uid?"Твой ход — выбери тему и стоимость вопроса.":"Ждём, пока текущий игрок выберет вопрос.");const board=$("board");board.innerHTML="";rounds.forEach((r,ri)=>{const div=document.createElement("div");div.className="round";div.style.setProperty("--accent",["#3de5c1","#328cff","#b78aff"][ri]);div.innerHTML=`<h3>${r.title}</h3>`;r.topics.forEach((t,ti)=>{const sub=document.createElement("div");sub.innerHTML=`<b>${esc(t[0])}</b>`;if(r.title)sub.style.marginBottom="4px";div.appendChild(sub);t[1].forEach((q,qi)=>{const key=`${ri}-${ti}-${qi}`;const b=document.createElement("button");b.className="topic"+(roomData.used?.[key]?" used":"");const value=ri+1;const special=specialCells.has(key)?" ✨":"";b.innerHTML=`<span>${qi+1}. ${special}</span><b>${value} очк.</b>`;b.disabled=!!roomData.used?.[key]||roomData.status!=="playing"||roomData.turnUid!==uid||players.length<2;b.onclick=()=>selectQuestion(ri,ti,qi);div.appendChild(b)})});board.appendChild(div)})}
+async function startGame(){const ps=Object.values(roomData.players||{});if(!isHost)return;if(ps.length<2){$("lobbyMsg").textContent="Нужно хотя бы 2 игрока (для вашей игры рекомендуем 7–12).";return}await update(ref(db,"rooms/"+roomId),{status:"playing",round:0,turnUid:ps[0].uid,used:{}})}
+async function selectQuestion(ri,ti,qi){if(!roomData||roomData.turnUid!==uid||roomData.status!=="playing")return;const key=`${ri}-${ti}-${qi}`;if(roomData.used?.[key])return;const q=rounds[ri].topics[ti][1][qi];const special=specialCells.has(key)?(Math.random()<.5?"kitty":"secret"):"normal";const newQ={key,ri,ti,qi,topic:rounds[ri].topics[ti][0],text:q[0],answer:q[1],options:q[2],points:ri+1,type:special,revealed:special==="normal",buzzUid:null,resolved:false};const res=await runTransaction(ref(db,"rooms/"+roomId),r=>{if(!r||r.status!=="playing"||r.turnUid!==uid||r.used?.[key])return; r.status="question";r.question=newQ;r.used={...(r.used||{}),[key]:true};return r});if(!res.committed)toast("Этот вопрос уже выбрали.");}
+function renderQuestion(){const q=roomData.question;if(!q)return;currentQuestion=q;if(isHost&&q.submittedAnswer&&!q.resolved&&!q.scoring)autoScoreSubmitted(q);$("qRound").textContent=rounds[q.ri].title;$("qTopic").textContent=q.topic;$("qValue").textContent=q.points+" очк.";$("qSpecial").textContent=q.type==="kitty"?"🐈 Кот в мешке":q.type==="secret"?"🔮 Секрет":"Обычный вопрос";$("qText").textContent=q.type==="kitty"&&!q.revealed?"В мешке спрятан вопрос!":q.type==="secret"&&!q.revealed?"Секретный вопрос…":q.text;$("kittyBox").classList.toggle("hidden",q.type!=="kitty"||q.revealed);$("secretBox").classList.toggle("hidden",q.type!=="secret"||q.revealed);$("answerBox").classList.toggle("hidden",!q.revealed);if(q.type==="normal")$("answerBox").classList.remove("hidden");$("revealBtn").disabled=!isHost||q.revealed;$("kittyBtn").disabled=!isHost||q.revealed;const answers=$("answerButtons");answers.innerHTML="";if(q.revealed){q.options.forEach((opt,i)=>{const b=document.createElement("button");b.className="answer";b.textContent=String.fromCharCode(65+i)+". "+opt;b.disabled=q.resolved||!q.buzzUid||q.buzzUid!==uid;b.onclick=()=>submitChoice(opt);answers.appendChild(b)})}const buzzed=q.buzzUid?roomData.players?.[q.buzzUid]?.name:null;$("buzzNotice").textContent=q.resolved?`Ответ: ${q.answer}. ${q.lastCorrect?"Верно!":"Ответ не засчитан."}`:q.submittedAnswer?`${buzzed} ответил: ${q.submittedAnswer}. Ждём фиксацию счёта…`:buzzed?`${buzzed} первым нажал кнопку — выбери вариант ответа!`:"Кто первый нажмёт «Я отвечаю!» — тот получает право ответа.";const already=!!q.buzzUid||q.resolved;let buzzBtn=document.getElementById("buzzBtn");if(!buzzBtn){buzzBtn=document.createElement("button");buzzBtn.id="buzzBtn";buzzBtn.className="gold";buzzBtn.textContent="🙋 Я отвечаю!";$("answerBox").appendChild(buzzBtn)}buzzBtn.classList.toggle("hidden",!q.revealed||already||q.resolved);buzzBtn.onclick=buzz;$("resolveBtn").classList.toggle("hidden",!isHost||!q.buzzUid||q.resolved||q.submittedAnswer);$("backBoard").classList.toggle("hidden",!isHost||!q.resolved);
+const appeal=q.appeal;$("appealForm").classList.toggle("hidden",!q.resolved||!!appeal||isHost);$("appealHostControls").classList.toggle("hidden",!isHost||!appeal||appeal.status!=="pending");$("appealSubmit").disabled=!q.resolved||!!appeal;$("appealStatus").textContent=!q.resolved?"Апелляцию можно подать после оценки ответа.":!appeal?"Можно оспорить оценку ответа один раз за вопрос.":appeal.status==="pending"?`Апелляция от ${roomData.players?.[appeal.by]?.name||"игрока"}: «${appeal.reason}». Ожидает решения ведущего.`:appeal.status==="accepted"?`Апелляция удовлетворена: ответ засчитан как правильный. Решение вынесено ведущим.`:`Апелляция отклонена: исходное решение оставлено. Решение вынесено ведущим.`;}
+async function submitAppeal(){const q=roomData?.question;const reason=$("appealReason").value.trim();if(!q?.resolved||q.appeal||isHost||!reason){toast("Напиши причину апелляции.");return}const res=await runTransaction(ref(db,`rooms/${roomId}/question`),v=>{if(!v||!v.resolved||v.appeal)return;v.appeal={by:uid,reason:reason.slice(0,300),status:"pending",createdAt:Date.now()};return v});if(res.committed){$("appealReason").value="";toast("Апелляция отправлена ведущему.")}else toast("Апелляция уже подана.")}
+async function decideAppeal(playerIsRight){const q=roomData?.question;const a=q?.appeal;if(!isHost||!q?.resolved||!a||a.status!=="pending")return;const player=q.buzzUid;const oldDelta=Number(q.scoreDelta||0);const newDelta=playerIsRight?q.points:-q.points;const current=Number(roomData.players?.[player]?.score||0);const updates={};updates[`rooms/${roomId}/players/${player}/score`]=current+(newDelta-oldDelta);updates[`rooms/${roomId}/question/scoreDelta`]=newDelta;updates[`rooms/${roomId}/question/lastCorrect`]=playerIsRight;updates[`rooms/${roomId}/question/appeal/status`]=playerIsRight?"accepted":"rejected";updates[`rooms/${roomId}/question/appeal/decidedBy`]=uid;updates[`rooms/${roomId}/question/appeal/decidedAt`]=Date.now();await update(ref(db),updates);toast(playerIsRight?"Апелляция удовлетворена, счёт исправлен.":"Апелляция отклонена.") }
+async function revealSpecial(){if(!isHost||!roomData.question)return;await update(ref(db,`rooms/${roomId}/question`),{revealed:true})}
+async function buzz(){const q=roomData?.question;if(!q||!q.revealed||q.buzzUid||q.resolved)return;const result=await runTransaction(ref(db,`rooms/${roomId}/question`),v=>{if(!v||v.buzzUid||v.resolved)return;v.buzzUid=uid;v.buzzAt=Date.now();return v});if(result.committed)toast("Ты первый! Отвечай вслух ведущему.");else toast("Кто-то успел нажать раньше.")}
+async function submitChoice(opt){const q=roomData?.question;if(!q||q.buzzUid!==uid||q.resolved)return;const result=await runTransaction(ref(db,`rooms/${roomId}/question`),v=>{if(!v||v.resolved||v.buzzUid!==uid||v.submittedAnswer)return;v.submittedAnswer=opt;v.submittedAt=Date.now();return v});if(result.committed)toast("Ответ отправлен ведущему.");else toast("Ответ уже отправлен.");}
+async function autoScoreSubmitted(q){if(!isHost||!q||!q.submittedAnswer||q.resolved||q.scoring)return;const claim=await runTransaction(ref(db,`rooms/${roomId}/question`),v=>{if(!v||v.resolved||v.scoring||!v.submittedAnswer)return;v.scoring=true;return v});if(!claim.committed)return;const ok=q.submittedAnswer===q.answer;const delta=ok?q.points:-q.points;const player=roomData.players?.[q.buzzUid];if(!player)return;const updates={};updates[`rooms/${roomId}/players/${q.buzzUid}/score`]=(player.score||0)+delta;updates[`rooms/${roomId}/question/resolved`]=true;updates[`rooms/${roomId}/question/lastCorrect`]=ok;updates[`rooms/${roomId}/question/scoreDelta`]=delta;updates[`rooms/${roomId}/question/scoring`]=false;await update(ref(db),updates);toast(ok?`Верно! +${delta} очка`:`Неверно: ${q.answer}. ${delta} очка`);}
+async function resolveAnswer(){const q=roomData.question;if(!isHost||!q?.buzzUid||q.resolved)return;const answer=prompt(`Игрок: ${roomData.players?.[q.buzzUid]?.name||"игрок"}\nПравильный ответ: ${q.answer}\nВведите ДА, если ответ верный, иначе НЕТ:`);if(answer===null)return;const ok=answer.trim().toLowerCase()==="да"||answer.trim().toLowerCase()==="д";const scoreDelta=ok?q.points:-q.points;const updates={};updates[`rooms/${roomId}/players/${q.buzzUid}/score`]=(roomData.players[q.buzzUid].score||0)+scoreDelta;updates[`rooms/${roomId}/question/resolved`]=true;updates[`rooms/${roomId}/question/lastCorrect`]=ok;updates[`rooms/${roomId}/question/scoreDelta`]=scoreDelta;await update(ref(db),updates);toast(ok?`+${q.points} очка`:`-${q.points} очка`)}
+async function nextTurn(){if(!isHost||!roomData.question?.resolved)return;const ps=Object.values(roomData.players||{}).sort((a,b)=>a.joinedAt-b.joinedAt);const used=roomData.used||{};const total=rounds.reduce((sum,r)=>sum+r.topics.reduce((s,t)=>s+t[1].length,0),0);const usedCount=Object.keys(used).length;if(usedCount>=total){await update(ref(db,"rooms/"+roomId),{status:"finished",question:null});return}const idx=ps.findIndex(p=>p.uid===roomData.turnUid);const next=ps[(idx+1)%ps.length];await update(ref(db,"rooms/"+roomId),{status:"playing",turnUid:next.uid,question:null})}
+function renderFinal(){const ps=Object.values(roomData.players||{}).sort((a,b)=>(b.score||0)-(a.score||0));$("finalScores").innerHTML=ps.map((p,i)=>`<div class="player">${i===0?"🏆 ":""}${i+1}. ${esc(p.name)}<div class="pts">${p.score||0} очков</div></div>`).join("")}
+async function leaveRoom(){if(!roomId)return;if(isHost){if(confirm("Закрыть комнату для всех?"))await remove(ref(db,"rooms/"+roomId))}else await remove(ref(db,`rooms/${roomId}/players/${uid}`));resetUI()}
+function resetUI(){if(unsubRoom)unsubRoom();unsubRoom=null;roomId=null;roomData=null;isHost=false;show("setup");hide("lobby");hide("game");hide("questionPanel");hide("finalPanel")}
+$("createBtn").onclick=createRoom;$("joinBtn").onclick=joinRoom;$("copyBtn").onclick=async()=>{try{await navigator.clipboard.writeText(roomId);toast("Код скопирован: "+roomId)}catch{toast("Код комнаты: "+roomId)}};$("startBtn").onclick=startGame;$("leaveBtn").onclick=leaveRoom;$("revealBtn").onclick=revealSpecial;$("kittyBtn").onclick=revealSpecial;$("resolveBtn").onclick=resolveAnswer;$("appealSubmit").onclick=submitAppeal;$("appealAccept").onclick=()=>decideAppeal(true);$("appealReject").onclick=()=>decideAppeal(false);$("backBoard").onclick=nextTurn;$("newRoomBtn").onclick=()=>{resetUI();$("name").value=playerName};$("roomCode").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase());init();
+</script>
+</body></html>
